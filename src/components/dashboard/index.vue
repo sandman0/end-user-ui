@@ -20,6 +20,7 @@
 <script>
 import Welcome from '@/components/dashboard/widgets/WelcomeWidget';
 import Workflow from '@/components/dashboard/widgets/WorkflowControlWidget';
+import Chess from '@/components/dashboard/widgets/ChessWidget';
 
 /**
  * @description Controlling component for the dashboard, loads widgets set and configured in the ui-dashboard config file.
@@ -30,6 +31,7 @@ export default {
     name: 'Dashboard',
     components: {
         Welcome,
+        Chess,
         Workflow
     },
     data () {
@@ -43,6 +45,7 @@ export default {
     },
     methods: {
         loadData () {
+            // console.log(JSON.stringify(this.userDetails));
             /* istanbul ignore next */
             this.getRequestService().get('config/ui/dashboard')
                 .then(({ data }) => {
