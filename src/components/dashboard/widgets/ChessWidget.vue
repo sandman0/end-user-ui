@@ -52,7 +52,9 @@
             </b-row>
             <b-row>
                 <div style="margin: 0 auto">
-                    <b-button @click="reload" variant="success">Reload</b-button>
+                    <b-button :disabled="newFEN == oldFEN" @click="saveGame()" variant="success">Post</b-button>
+                    <b-button :disabled="newFEN == oldFEN" @click="undo()" variant="success">Undo</b-button>
+                    <b-button @click="reload" variant="success">Refresh</b-button>
                 </div>
             </b-row>
         </div>
@@ -112,7 +114,8 @@ export default {
             highlightStyles: null,
             idmInstance: this.getRequestService(),
             myGames: [],
-            positionInfo: null,
+            newFEN: "",
+            oldFEN: "",
             gameDetailsLoaded: false,
             selectedGameId: null,
             selectedGame: null,
@@ -150,7 +153,7 @@ export default {
         //     }
         // },
         getMyGamesList() {
-            this.myGames.length = 0;
+            this.myGames.splice(0, this.myGames.length);
             this.idmInstance.get(`${this.userDetails.managedResource}/${this.userDetails.userId}?_fields=games/*`).then((gameResult) => {
                 // console.log(`gameResult = ${JSON.stringify(gameResult)}`);
                 if (gameResult.data.games.length > 0) {
@@ -188,6 +191,18 @@ export default {
                     };
                     this.updateMessageString(chessjsgame);
                     this.gameDetailsLoaded = true;
+                    // if this is my turn
+                    if(this.selectedGame.chessjsgame.turn() === this.selectedGame.color) {
+                        // mark the update as "seen"
+                        this.seenGame();
+                    }
+                    // if this is my turn
+                    if(this.selectedGame) {
+                        if(this.selectedGame.chessjsgame.turn() === this.selectedGame.color) {
+                            // no need to poll
+                            return;
+                        }
+                    }
                     this.startPolling();
                 }
             });
@@ -246,12 +261,30 @@ export default {
         snapEnd () {
             console.log('snapend');
             // this.position = this.game.fen();
-            this.selectedGame.currentFEN = this.selectedGame.chessjsgame.fen();
+            // this.selectedGame.currentFEN = this.selectedGame.chessjsgame.fen();
+            this.selectedGame.currentFEN = this.newFEN;
         },
-        saveGame(newFEN) {
+        seenGame() {
             const saveData = [
-                {"operation":"replace", "field":"/currentFEN", "value":newFEN},
-                {"operation":"add", "field":"/pastFEN/-", "value": {"FEN":this.selectedGame.oldFEN} }
+                {"operation":"replace", "field":"/seen", "value":true}
+            ];
+            this.idmInstance.patch(`managed/game/${this.selectedGame.id}`, saveData).then(() => {
+                //this.displayNotification('success', 'Move posted successfully');
+                //this.updateMessageString(this.selectedGame.chessjsgame);
+            },
+            (error) => {
+                this.displayNotification('error', `Error marking seen - ${error.response}`);
+            });
+        },
+        saveGame() {
+            // update the selectedGame with the new FEN
+            const loaded = this.selectedGame.chessjsgame.load(this.newFEN);
+
+            // commit the newFEN to repo
+            const saveData = [
+                {"operation":"replace", "field":"/currentFEN", "value":this.newFEN},
+                {"operation":"replace", "field":"/seen", "value":false},
+                {"operation":"add", "field":"/pastFEN/-", "value": {"FEN":this.oldFEN} }
             ];
             this.idmInstance.patch(`managed/game/${this.selectedGame.id}`, saveData).then(() => {
                 this.displayNotification('success', 'Move posted successfully');
@@ -260,24 +293,45 @@ export default {
             (error) => {
                 this.displayNotification('error', `Error posting move - ${error.response}`);
             });
+            this.oldFEN = this.newFEN;
+            this.startPolling();
+        },
+        undo() {
+            const loaded = this.selectedGame.chessjsgame.load(this.oldFEN);
+            this.selectedGame.currentFEN = this.oldFEN;
+            this.newFEN = this.oldFEN;
         },
         drop (e) {
-            const { source, target, setAction } = e.detail,
-                oldFEN = this.selectedGame.chessjsgame.fen(),
-                move = this.selectedGame.chessjsgame.move({
-                    from: source,
-                    to: target,
-                    promotion: 'q' // NOTE: always promote to a queen for example simplicity
-                });
+            const { source, target, setAction } = e.detail;
+            
+            // const tempGame = new Chess(gameResult.data.currentFEN);
+            this.oldFEN = this.selectedGame.chessjsgame.fen();
+            console.log(`this.oldFEN ${this.oldFEN}`);
+            const tempGame = new Chess(this.oldFEN);
+            const move = tempGame.move({
+                from: source,
+                to: target,
+                promotion: 'q' // NOTE: always promote to a queen for example simplicity
+            });
+
+            // const move = this.selectedGame.chessjsgame.move({
+            //     from: source,
+            //     to: target,
+            //     promotion: 'q' // NOTE: always promote to a queen for example simplicity
+            // });
 
             // illegal move
             if (move === null) {
+                console.log('snapbacking');
                 setAction('snapback');
             }
-            const newFEN = this.selectedGame.chessjsgame.fen();
-            if (newFEN != oldFEN) {
-                this.saveGame(newFEN);
-            }
+            this.newFEN = tempGame.fen();
+            console.log(`this.newFEN ${this.newFEN}`);
+            console.log(`currentFEN ${this.selectedGame.currentFEN}`);
+            // this.newFEN = this.selectedGame.chessjsgame.fen();
+            // if (newFEN != oldFEN) {
+            //     this.saveGame(newFEN);
+            // }
         },
         dragStart (e) {
             const { piece } = e.detail;
