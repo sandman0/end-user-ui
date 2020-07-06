@@ -1,76 +1,108 @@
 <template>
-    <div v-if="userDetails.profile.gameOptIn">
-        <b-card>
-            <b-card-title>Your chess games</b-card-title>
-            <div>
-                Select a game:
-                <!-- <b-form-select v-model="selectedGameId" :options="myGames" class="mb-3"> -->
-                <b-form-select v-model="selectedGameId" @change="getGameDetails" :options="myGames" class="mb-3">
-                    <!-- <template v-slot:first>
-                        <b-form-select-option :value="null" disabled>-- select a game --</b-form-select-option>
-                    </template> -->
-                </b-form-select>
-            </div>
-            <div>
-                <b-card no-body style="max-width: 750px; margin-left: auto; margin-right: auto;">
-                    <b-row v-if="gameDetailsLoaded">
-                    <b-col md="6">
-                        <chess-board
-                            style="width: 400px"
-                            draggable-pieces
-                            :position="selectedGame.currentFEN"
-                            :orientation="selectedGame.color=='w'?'white':'black'"
-                            @drag-start="dragStart($event)"
-                            @drop="drop($event)"
-                            @snap-end="snapEnd()"
-                            @mouseover-square="mouseoverSquare($event)"
-                            @mouseout-square="mouseoutSquare($event)"
-                        ></chess-board>
+    <div v-if="gameOptIn">
+        <h2>My chess games</h2>
+        <div>
+            Select a game:
+            <!-- <b-form-select v-model="selectedGameId" :options="myGames" class="mb-3"> -->
+            <b-form-select v-model="selectedGameId" @change="getGameDetails" :options="myGames" class="mb-3">
+                <!-- <template v-slot:first>
+                    <b-form-select-option :value="null" disabled>-- select a game --</b-form-select-option>
+                </template> -->
+            </b-form-select>
+        </div>
+        <div v-if="gameDetailsLoaded">
+            <b-row>
+                <div style="margin: 0 auto; color:blue;">
+                    {{ gameStatus }}
+                </div>
+            </b-row>
+            <b-row>
+                <div style="margin: 0 auto">
+                    <small>Started {{selectedGame.startts}}</small>
+                </div>
+            </b-row>
+            <b-row>
+                <div style="margin: 0 auto">
+                <h4>&#9660; {{selectedGame.opponentname}} &#9660;</h4>
+                </div>
+            </b-row>
+            <b-row>
+                <div style="margin: 0 auto">
+                    &nbsp;
+                </div>
+            </b-row>
+            <b-row>
+                <chess-board
+                    style="width: 400px"
+                    draggable-pieces
+                    :position="selectedGame.currentFEN"
+                    :orientation="selectedGame.color=='w'?'white':'black'"
+                    @drag-start="dragStart($event)"
+                    @drop="drop($event)"
+                    @snap-end="snapEnd()"
+                    @mouseover-square="mouseoverSquare($event)"
+                    @mouseout-square="mouseoutSquare($event)"
+                ></chess-board>
+            </b-row>
+            <b-row>
+                <div style="margin: 0 auto">
+                <h4>&#9650; Me &#9650; <span v-html="myStatus"></span></h4>
+                <!-- <div v-html="myStatus"></div> -->
+                </div>
+            </b-row>
+            <b-row>
+                <div style="margin: 0 auto">
+                    <b-button @click="reload" variant="success">Reload</b-button>
+                </div>
+            </b-row>
+        </div>
+        <div v-else>
+                <b-row>
+                    <b-col md="12" style="text-align: center">
+                    --- No game selected ---
                     </b-col>
-                    <b-col md="6">
-                        <b-card-body :title="'Game with ' + selectedGame.opponentid">
-                        <b-card-sub-title class="mb-2">Started {{selectedGame.startts}}</b-card-sub-title>
-                        <b-card-text>
-                            I am {{selectedGame.color=="w"?"White":"Black"}}
-                            <br>
-                            {{selectedGame.opponentid}} {{selectedGame.color=="w"?"Black":"White"}}
-                            <br>
-                            {{ selectedGame.message }}
-                        </b-card-text>
-                        </b-card-body>
-                        <b-card-footer><b-button @click="reload" variant="success">Reload</b-button></b-card-footer>
-                    </b-col>
-                    </b-row>
-                    <b-row v-else>
-                        <b-col md="12" style="text-align: center">
-                        --- No game selected ---
-                        </b-col>
-                    </b-row>
-                </b-card>
+                </b-row>
+        </div>
+        <hr>
+        <!-- <b-row>
+        <div style="margin: 0 auto">OR</div>
+        </b-row>
+        <hr>
+        <div>
+            <invite-user :userDetails="userDetails"></invite-user>
+        </div>
+        <hr>
+        <div>
+            <manage-invites :userDetails="userDetails" @inviteAccepted="getMyGamesList"></manage-invites>
+        </div> -->
+    </div>
+    <div v-else>
+        <b-row>
+            <div style="margin: 0 auto">
+                <h2>Opt in for community games?</h2>
+                <small>Clicking "Yes" below will allow you to search for other players who have opted in and challenge them to a game of chess</small>
             </div>
-        </b-card>
-            <!-- <div v-if="gameDetailsLoaded">
-                        <chess-board
-                            style="width: 400px"
-                            draggable-pieces
-                            :position="selectedGame.currentFEN"
-                            :orientation="selectedGame.color=='w'?'white':'black'"
-                            @drag-start="dragStart($event)"
-                            @drop="drop($event)"
-                            @snap-end="snapEnd()"
-                            @mouseover-square="mouseoverSquare($event)"
-                            @mouseout-square="mouseoutSquare($event)"
-                        ></chess-board>
-            </div> -->
+        </b-row>
+        <b-row>
+            <div style="margin: 0 auto">
+                <b-button @click="optin" variant="success">YES</b-button>
+            </div>
+        </b-row>
     </div>
 </template>
 <script>
+import _ from 'lodash';
 import ChessBoard from 'chessboard-element';
 import Chess from 'chess.js';
+import InviteUser from '@/components/dashboard/widgets/game/InviteUser';
+import ManageInvites from '@/components/dashboard/widgets/game/ManageInvites';
+
 export default {
     name: 'Chess-Widget',
     components: {
-        ChessBoard
+        ChessBoard,
+        InviteUser,
+        ManageInvites
     },
     props: ['userDetails', 'widgetDetails'],
     data () {
@@ -83,33 +115,53 @@ export default {
             positionInfo: null,
             gameDetailsLoaded: false,
             selectedGameId: null,
-            selectedGame: null
+            selectedGame: null,
+            gameStatus: '',
+            myStatus: '',
+            gameOptIn: false
         };
     },
     mounted () {
+        this.gameOptIn = this.userDetails.profile.gameOptIn;
         this.highlightStyles = document.createElement('style');
         document.head.append(this.highlightStyles);
         this.getMyGamesList();
     },
-    // computed: {
-    //     selectedGame () {
-    //         if (this.selectedGameId) {
-    //             return this.getGameDetails(this.selectedGameId);
-    //         }
-    //         return null;
-    //     }
-    // },
     methods: {
+        startPolling () {
+            let pollingDelay = 5000;
+
+            /* istanbul ignore next */
+            this.timeoutId = _.delay(() => {
+                this.getGameDetails(this.selectedGameId);
+            }, pollingDelay);
+        },
+        resetPolling () {
+            /* istanbul ignore next */
+            if (!_.isNull(this.timeoutId)) {
+                clearTimeout(this.timeoutId);
+                this.timeoutId = null;
+            }
+        },
+        // updateGameDetail () {
+        //     if (selectedGameId != null) {
+        //         this.getGameDetails(selectedGameId);
+        //         this.startPolling();
+        //     }
+        // },
         getMyGamesList() {
             this.myGames.length = 0;
-            this.idmInstance.get(`${this.userDetails.managedResource}/${this.userDetails.userId}?_fields=games`).then((gameResult) => {
+            this.idmInstance.get(`${this.userDetails.managedResource}/${this.userDetails.userId}?_fields=games/*`).then((gameResult) => {
                 // console.log(`gameResult = ${JSON.stringify(gameResult)}`);
                 if (gameResult.data.games.length > 0) {
                     for (const game of gameResult.data.games) {
-                        this.myGames.push({
-                            text: `game with ${game._refProperties.opponent}`,
-                            value: game._refResourceId
-                        });
+                        // only get games with status != InviteSent
+                        if(game.status != "InviteSent") {
+                            this.myGames.push({
+                                text: `Game with ${game._refProperties.opponentname}`,
+                                value: game._refResourceId
+                            });
+                        }
                     }
                     // console.log(`myGames = ${this.myGames.length}`);
                 }
@@ -122,7 +174,6 @@ export default {
                 if (gameResult.data) {
                     // let whoseMove = game.currentFEN.split(" ")[1]==game._refProperties.color?"My":"my opponent's";
                     const chessjsgame = new Chess(gameResult.data.currentFEN);
-                    const message = this.getMessageString(chessjsgame);
                     this.selectedGame = {
                         id: gameResult.data._id,
                         name: gameResult.data.name,
@@ -131,13 +182,28 @@ export default {
                         currentFEN: gameResult.data.currentFEN,
                         oldFEN: gameResult.data.currentFEN,
                         color: gameResult.data.players[0]._refProperties.color,
-                        opponentid: gameResult.data.players[0]._refProperties.opponent,
-                        chessjsgame: chessjsgame,
-                        message: message
-                        // whoseMove: whoseMove
+                        opponentid: gameResult.data.players[0]._refProperties.opponentid,
+                        opponentname: gameResult.data.players[0]._refProperties.opponentname,
+                        chessjsgame: chessjsgame
                     };
+                    this.updateMessageString(chessjsgame);
                     this.gameDetailsLoaded = true;
+                    this.startPolling();
                 }
+            });
+        },
+        optin() {
+            const payload = [
+                {"operation":"replace", "field":"/gameOptIn", "value": true},
+            ];
+            this.idmInstance.patch(`${this.userDetails.managedResource}/${this.userDetails.userId}`, payload)
+            .then((response) => {
+                this.displayNotification('success', 'Opt in sucess');
+                this.gameOptIn = true;
+            })
+            .catch((error) => {
+                /* istanbul ignore next */
+                this.displayNotification('error', 'Error when opting in');
             });
         },
         reload() {
@@ -156,28 +222,26 @@ export default {
                 }
             `;
         },
-        getMessageString (g) {
-            let statusMessage = '';
-            let moveColor = 'White';
-            if (g.turn() === 'b') {
-                moveColor = 'Black';
+        updateMessageString (g) {
+            let turn = '';
+            if (g.turn() === this.selectedGame.color) {
+                turn = "my";
+            } else {
+                turn = "opponent's";
             }
             if (g.in_checkmate()) {
                 // checkmate?
-                statusMessage = `Game over, ${moveColor} is in checkmate.`;
+                this.myStatus = `<span style="color: blue;">Game over, ${moveColor} is in checkmate.</span>`;
             } else if (g.in_draw()) {
                 // draw?
-                statusMessage = 'Game over, drawn position';
+                this.myStatus = '<span style="color: blue;">Game over, drawn position</span>';
             } else {
-                // game still on
-                statusMessage = `${moveColor} to move`;
-
                 // check?
+                this.myStatus = `<span style="color: blue;">${turn} turn</span>`;
                 if (g.in_check()) {
-                    statusMessage += `, ${moveColor} is in check`;
+                    this.myStatus += `, <span style="color: red;">in check</span>`;
                 }
             }
-            return statusMessage;
         },
         snapEnd () {
             console.log('snapend');
@@ -191,7 +255,7 @@ export default {
             ];
             this.idmInstance.patch(`managed/game/${this.selectedGame.id}`, saveData).then(() => {
                 this.displayNotification('success', 'Move posted successfully');
-                this.selectedGame.message = this.getMessageString(this.selectedGame.chessjsgame);
+                this.updateMessageString(this.selectedGame.chessjsgame);
             },
             (error) => {
                 this.displayNotification('error', `Error posting move - ${error.response}`);
@@ -255,4 +319,13 @@ export default {
 };
 </script>
 
-<style lang="scss" scoped></style>
+<style lang="scss" scoped>
+.chessboard-container {
+    width: 425px;
+    box-sizing: border-box;
+    background-color: white;
+    border-width: 1px;
+    border-style: solid;
+    border-color: lightgray;
+}
+</style>

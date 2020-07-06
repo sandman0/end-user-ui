@@ -1,7 +1,13 @@
 <template>
     <b-container fluid>
-        <b-row v-if="widgets.length">
-            <div v-for="(widget, index) in widgets" :class="{'col-sm-4': widget.size === 'small', 'col-sm-6': widget.size === 'medium', 'col-sm-12': widget.size === 'large', 'mt-4': true}" :key="widget.type + index">
+        <!-- <b-row>
+            <div>
+            <component :is="'Chess'" :userDetails="userDetails"></component>
+            </div>
+        </b-row> -->
+        <b-row v-if="widgets.length" class="justify-content-md-center">
+            <div v-for="(widget, index) in widgets" :class="{'col-sm-4': (widget.size === 'small' && widget.type != 'Chess'), 'col-sm-6': (widget.size === 'medium' && widget.type != 'Chess'), 'col-sm-12': (widget.size === 'large' && widget.type != 'Chess'), 'mt-4': widget.type != 'Chess'}" :key="widget.type + index">
+            <!-- <div v-for="(widget, index) in widgets" :key="widget.type + index"> -->
                 <component :is="widget.type" :userDetails="userDetails" :details="widget.details"></component>
             </div>
         </b-row>
