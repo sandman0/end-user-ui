@@ -32,17 +32,13 @@
                 </div>
             </b-row>
             <b-row>
-                <chess-board
-                    style="width: 400px"
-                    draggable-pieces
-                    :position="selectedGame.currentFEN"
-                    :orientation="selectedGame.color=='w'?'white':'black'"
-                    @drag-start="dragStart($event)"
-                    @drop="drop($event)"
-                    @snap-end="snapEnd()"
-                    @mouseover-square="mouseoverSquare($event)"
-                    @mouseout-square="mouseoutSquare($event)"
-                ></chess-board>
+                <chessboard 
+                    class="chessboard" 
+                    :iconDir="iconDir" 
+                    :fen="selectedGame.currentFEN" 
+                    :side="selectedGame.color" 
+                    v-on:change="boardChange($event)">
+                </chessboard>
             </b-row>
             <b-row>
                 <div style="margin: 0 auto">
@@ -94,7 +90,7 @@
 </template>
 <script>
 import _ from 'lodash';
-import ChessBoard from 'chessboard-element';
+import Chessboard from '@/components/dashboard/widgets/chessboard/chessboard.vue';
 import Chess from 'chess.js';
 import InviteUser from '@/components/dashboard/widgets/game/InviteUser';
 import ManageInvites from '@/components/dashboard/widgets/game/ManageInvites';
@@ -102,16 +98,13 @@ import ManageInvites from '@/components/dashboard/widgets/game/ManageInvites';
 export default {
     name: 'Chess-Widget',
     components: {
-        ChessBoard,
+        Chessboard,
         InviteUser,
         ManageInvites
     },
     props: ['userDetails', 'widgetDetails'],
     data () {
         return {
-            whiteSquareGrey: '#a9a9a9',
-            blackSquareGrey: '#696969',
-            highlightStyles: null,
             idmInstance: this.getRequestService(),
             myGames: [],
             newFEN: "",
@@ -121,13 +114,12 @@ export default {
             selectedGame: null,
             gameStatus: '',
             myStatus: '',
-            gameOptIn: false
+            gameOptIn: false,
+            iconDir: '@/components/dashboard/widgets/chessboard/chess-pieces/'
         };
     },
     mounted () {
         this.gameOptIn = this.userDetails.profile.gameOptIn;
-        this.highlightStyles = document.createElement('style');
-        document.head.append(this.highlightStyles);
         this.getMyGamesList();
     },
     methods: {
@@ -146,12 +138,6 @@ export default {
                 this.timeoutId = null;
             }
         },
-        // updateGameDetail () {
-        //     if (selectedGameId != null) {
-        //         this.getGameDetails(selectedGameId);
-        //         this.startPolling();
-        //     }
-        // },
         getMyGamesList() {
             this.myGames.splice(0, this.myGames.length);
             this.idmInstance.get(`${this.userDetails.managedResource}/${this.userDetails.userId}?_fields=games/*`).then((gameResult) => {
@@ -224,19 +210,6 @@ export default {
         reload() {
             this.getGameDetails(this.selectedGameId);
         },
-        removeGreySquares () {
-            this.highlightStyles.textContent = '';
-        },
-        greySquare (square) {
-            const highlightColor = (square.charCodeAt(0) % 2) ^ (square.charCodeAt(1) % 2)
-                ? this.whiteSquareGrey
-                : this.blackSquareGrey;
-            this.highlightStyles.textContent += `
-                chess-board::part(${square}) {
-                background-color: ${highlightColor};
-                }
-            `;
-        },
         updateMessageString (g) {
             let turn = '';
             if (g.turn() === this.selectedGame.color) {
@@ -257,12 +230,6 @@ export default {
                     this.myStatus += `, <span style="color: red;">in check</span>`;
                 }
             }
-        },
-        snapEnd () {
-            console.log('snapend');
-            // this.position = this.game.fen();
-            // this.selectedGame.currentFEN = this.selectedGame.chessjsgame.fen();
-            this.selectedGame.currentFEN = this.newFEN;
         },
         seenGame() {
             const saveData = [
@@ -301,85 +268,22 @@ export default {
             this.selectedGame.currentFEN = this.oldFEN;
             this.newFEN = this.oldFEN;
         },
-        drop (e) {
-            const { source, target, setAction } = e.detail;
-            
-            // const tempGame = new Chess(gameResult.data.currentFEN);
+        boardChange (fen) {
             this.oldFEN = this.selectedGame.chessjsgame.fen();
+            this.selectedGame.currentFEN = fen;
             console.log(`this.oldFEN ${this.oldFEN}`);
-            const tempGame = new Chess(this.oldFEN);
-            const move = tempGame.move({
-                from: source,
-                to: target,
-                promotion: 'q' // NOTE: always promote to a queen for example simplicity
-            });
-
-            // const move = this.selectedGame.chessjsgame.move({
-            //     from: source,
-            //     to: target,
-            //     promotion: 'q' // NOTE: always promote to a queen for example simplicity
-            // });
-
-            // illegal move
-            if (move === null) {
-                console.log('snapbacking');
-                setAction('snapback');
-            }
-            this.newFEN = tempGame.fen();
+            this.newFEN = fen;
             console.log(`this.newFEN ${this.newFEN}`);
             console.log(`currentFEN ${this.selectedGame.currentFEN}`);
-            // this.newFEN = this.selectedGame.chessjsgame.fen();
-            // if (newFEN != oldFEN) {
-            //     this.saveGame(newFEN);
-            // }
-        },
-        dragStart (e) {
-            const { piece } = e.detail;
-
-            if (this.selectedGame.chessjsgame.game_over()) {
-                e.preventDefault();
-                return;
-            }
-            if ((this.selectedGame.chessjsgame.turn() != this.selectedGame.color || piece.indexOf(this.selectedGame.color) !== 0)) {
-                e.preventDefault();
-            }
-        },
-        mouseoverSquare (e) {
-            if(this.selectedGame.chessjsgame.turn() === this.selectedGame.color) {
-                const { square } = e.detail,
-                    moves = this.selectedGame.chessjsgame.moves({
-                        square: square,
-                        verbose: true
-                    });
-
-                // exit if there are no moves available for this square
-                if (moves.length === 0) {
-                    return;
-                }
-
-                // highlight the square they moused over
-                this.greySquare(square);
-
-                // highlight the possible squares for this piece
-                for (const move of moves) {
-                    this.greySquare(move.to);
-                }
-            }
-        },
-        mouseoutSquare () {
-            this.removeGreySquares();
         }
     }
 };
 </script>
 
 <style lang="scss" scoped>
-.chessboard-container {
-    width: 425px;
-    box-sizing: border-box;
-    background-color: white;
-    border-width: 1px;
-    border-style: solid;
-    border-color: lightgray;
+.chessboard {
+  flex: 1;
+  flex-basis: 70%;
+  max-width: 100vh;
 }
 </style>
