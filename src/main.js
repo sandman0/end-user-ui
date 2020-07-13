@@ -12,6 +12,9 @@ import UserStore from './store/User';
 import VeeValidate from 'vee-validate';
 import Vue from 'vue';
 import 'core-js/stable';
+import ChessBoard from 'chessboard-element'
+import Chess from 'chess.js'
+
 
 // Turn off production warning messages
 Vue.config.productionTip = false;
@@ -134,6 +137,9 @@ router.beforeEach((to, from, next) => {
 // IDM Context default
 const idmContext = window.context || '/openidm';
 
+Vue.component('ChessBoard', ChessBoard);
+Object.defineProperty(Vue.prototype, '$chess', { value: Chess });
+// Vue.component(Chess);
 // Globally load bootstrap vue components for use
 Vue.use(BootstrapVue);
 

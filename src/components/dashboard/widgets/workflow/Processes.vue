@@ -33,6 +33,8 @@ import styles from '@/scss/main.scss';
 import ListGroup from '@/components/utils/ListGroup';
 import ListItem from '@/components/utils/ListItem';
 import Process from './Process';
+import Chess from 'chess.js'
+
 
 /**
 * @description Dashboard widget that displays a list of available processes that can be started
