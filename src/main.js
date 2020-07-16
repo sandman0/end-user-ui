@@ -12,7 +12,7 @@ import UserStore from './store/User';
 import VeeValidate from 'vee-validate';
 import Vue from 'vue';
 import 'core-js/stable';
-import CB from 'chessboard-element'
+import Chessboard from '@/components/dashboard/widgets/chessboard/chessboard.vue';
 import Chess from 'chess.js'
 
 
@@ -137,7 +137,7 @@ router.beforeEach((to, from, next) => {
 // IDM Context default
 const idmContext = window.context || '/openidm';
 
-Vue.component('CB', CB);
+Vue.component('Chessboard', Chessboard);
 Object.defineProperty(Vue.prototype, '$chess', { value: Chess });
 // Vue.component(Chess);
 // Globally load bootstrap vue components for use

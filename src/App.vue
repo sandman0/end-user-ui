@@ -144,6 +144,7 @@ export default {
     @import "~@fortawesome/fontawesome-free/css/all.css";
 
     #app {
+        opacity: .99;
         -webkit-transition: all 0.2s ease;
         -moz-transition: all 0.2s ease;
         -o-transition: all 0.2s ease;

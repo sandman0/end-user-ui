@@ -55,6 +55,7 @@ export default {
     methods: {
         setShown (id) {
             this.$set(this.panelShown, id, true);
+            window.dispatchEvent(new Event('resize'));
         },
         setHidden (id) {
             this.$set(this.panelShown, id, false);

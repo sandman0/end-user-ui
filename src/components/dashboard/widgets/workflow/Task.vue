@@ -1,4 +1,5 @@
 <template>
+    <!-- <div> -->
     <transition name="fade" mode="out-in" duration="250">
         <component v-if="processDefinition !== null && taskForm !== null"
                    :is="taskForm"
@@ -15,6 +16,7 @@
                      @cancel="cancel"></GenericTask>
         <clip-loader v-else class="m-auto" :color="loadingColor"></clip-loader>
     </transition>
+    <!-- </div> -->
 </template>
 
 <script>

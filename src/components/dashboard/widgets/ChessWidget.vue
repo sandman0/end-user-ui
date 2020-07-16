@@ -12,18 +12,18 @@
         </div>
         <div v-if="gameDetailsLoaded">
             <b-row>
-                <div style="margin: 0 auto; color:blue;">
-                    {{ gameStatus }}
-                </div>
-            </b-row>
-            <b-row>
                 <div style="margin: 0 auto">
                     <small>Started {{selectedGame.startts}}</small>
                 </div>
             </b-row>
             <b-row>
                 <div style="margin: 0 auto">
-                <h4>&#9660; {{selectedGame.opponentname}} &#9660;</h4>
+                <h4>&#9660; Opponent &#9660;</h4>
+                </div>
+            </b-row>
+            <b-row>
+                <div style="margin: 0 auto">
+                ({{selectedGame.opponentname}})
                 </div>
             </b-row>
             <b-row>
@@ -42,15 +42,20 @@
             </b-row>
             <b-row>
                 <div style="margin: 0 auto">
-                <h4>&#9650; Me &#9650; <span v-html="myStatus"></span></h4>
+                <h4>&#9650; Me &#9650;</h4>
                 <!-- <div v-html="myStatus"></div> -->
                 </div>
             </b-row>
             <b-row>
                 <div style="margin: 0 auto">
-                    <b-button :disabled="newFEN == oldFEN" @click="saveGame()" variant="success">Post</b-button>
-                    <b-button :disabled="newFEN == oldFEN" @click="undo()" variant="success">Undo</b-button>
-                    <b-button @click="reload" variant="success">Refresh</b-button>
+                <span v-html="myStatus"></span>
+                </div>
+            </b-row>
+            <b-row>
+                <div style="margin: 0 auto">
+                    <b-button :disabled="newFEN == oldFEN" @click="saveGame()" variant="success">Commit</b-button>
+                    <b-button :disabled="newFEN == oldFEN" @click="undo()" variant="warning">Undo</b-button>
+                    <b-button @click="reload" variant="info">Refresh</b-button>
                 </div>
             </b-row>
         </div>
@@ -62,17 +67,6 @@
                 </b-row>
         </div>
         <hr>
-        <!-- <b-row>
-        <div style="margin: 0 auto">OR</div>
-        </b-row>
-        <hr>
-        <div>
-            <invite-user :userDetails="userDetails"></invite-user>
-        </div>
-        <hr>
-        <div>
-            <manage-invites :userDetails="userDetails" @inviteAccepted="getMyGamesList"></manage-invites>
-        </div> -->
     </div>
     <div v-else>
         <b-row>
@@ -92,15 +86,15 @@
 import _ from 'lodash';
 import Chessboard from '@/components/dashboard/widgets/chessboard/chessboard.vue';
 import Chess from 'chess.js';
-import InviteUser from '@/components/dashboard/widgets/game/InviteUser';
-import ManageInvites from '@/components/dashboard/widgets/game/ManageInvites';
+// import InviteUser from '@/components/dashboard/widgets/game/InviteUser';
+// import ManageInvites from '@/components/dashboard/widgets/game/ManageInvites';
 
 export default {
     name: 'Chess-Widget',
     components: {
-        Chessboard,
-        InviteUser,
-        ManageInvites
+        Chessboard
+        // InviteUser,
+        // ManageInvites
     },
     props: ['userDetails', 'widgetDetails'],
     data () {
@@ -112,7 +106,6 @@ export default {
             gameDetailsLoaded: false,
             selectedGameId: null,
             selectedGame: null,
-            gameStatus: '',
             myStatus: '',
             gameOptIn: false,
             iconDir: '@/components/dashboard/widgets/chessboard/chess-pieces/'
@@ -219,10 +212,12 @@ export default {
             }
             if (g.in_checkmate()) {
                 // checkmate?
-                this.myStatus = `<span style="color: blue;">Game over, ${moveColor} is in checkmate.</span>`;
+                console.log(`checkmate`);
+                this.myStatus = `<span style="color: orange;">Game over, ${g.turn()=="w"?"White":"Black"} is in checkmate.</span>`;
             } else if (g.in_draw()) {
                 // draw?
-                this.myStatus = '<span style="color: blue;">Game over, drawn position</span>';
+                console.log(`draw`);
+                this.myStatus = '<span style="color: orange;">Game over, drawn position</span>';
             } else {
                 // check?
                 this.myStatus = `<span style="color: blue;">${turn} turn</span>`;
@@ -271,10 +266,10 @@ export default {
         boardChange (fen) {
             this.oldFEN = this.selectedGame.chessjsgame.fen();
             this.selectedGame.currentFEN = fen;
-            console.log(`this.oldFEN ${this.oldFEN}`);
+            // console.log(`this.oldFEN ${this.oldFEN}`);
             this.newFEN = fen;
-            console.log(`this.newFEN ${this.newFEN}`);
-            console.log(`currentFEN ${this.selectedGame.currentFEN}`);
+            // console.log(`this.newFEN ${this.newFEN}`);
+            // console.log(`currentFEN ${this.selectedGame.currentFEN}`);
         }
     }
 };
@@ -283,7 +278,7 @@ export default {
 <style lang="scss" scoped>
 .chessboard {
   flex: 1;
-  flex-basis: 70%;
-  max-width: 100vh;
+  flex-basis: 40%;
+  max-width: 40vh;
 }
 </style>
