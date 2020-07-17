@@ -33,6 +33,8 @@
 </template>
 
 <script>
+// game over FEN:
+// 8/p7/1n6/2p1k1Pp/8/1r2n3/4Kp2/2b4b b - - 1 59
 import ChessGame from './utils/chessgame'
 export default {
   name: 'chessboard',

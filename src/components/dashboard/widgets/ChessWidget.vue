@@ -1,6 +1,6 @@
 <template>
     <div v-if="gameOptIn">
-        <h2>My chess games</h2>
+        <h2>My completed chess games</h2>
         <div>
             Select a game:
             <!-- <b-form-select v-model="selectedGameId" :options="myGames" class="mb-3"> -->
@@ -53,9 +53,11 @@
             </b-row>
             <b-row>
                 <div style="margin: 0 auto">
-                    <b-button :disabled="newFEN == oldFEN" @click="saveGame()" variant="success">Commit</b-button>
-                    <b-button :disabled="newFEN == oldFEN" @click="undo()" variant="warning">Undo</b-button>
+                    <b-button :disabled="newFEN == oldFEN" @click="saveGame()" variant="info">Commit</b-button>
+                    <b-button :disabled="newFEN == oldFEN" @click="undo()" variant="info">Undo</b-button>
                     <b-button @click="reload" variant="info">Refresh</b-button>
+                    &nbsp;
+                    <b-button :disabled="selectedGame.status=='Ongoing'" @click="finishGame()" variant="warning">Finish game</b-button>
                 </div>
             </b-row>
         </div>
@@ -138,7 +140,7 @@ export default {
                 if (gameResult.data.games.length > 0) {
                     for (const game of gameResult.data.games) {
                         // only get games with status != InviteSent
-                        if(game.status != "InviteSent") {
+                        if(game.status == "Over") {
                             this.myGames.push({
                                 text: `Game with ${game._refProperties.opponentname}`,
                                 value: game._refResourceId
@@ -154,7 +156,6 @@ export default {
             this.idmInstance.get(`managed/game/${id}?_fields=*,players`).then((gameResult) => {
                 // console.log(`gameResult = ${JSON.stringify(gameResult)}`);
                 if (gameResult.data) {
-                    // let whoseMove = game.currentFEN.split(" ")[1]==game._refProperties.color?"My":"my opponent's";
                     const chessjsgame = new Chess(gameResult.data.currentFEN);
                     this.selectedGame = {
                         id: gameResult.data._id,
@@ -168,6 +169,8 @@ export default {
                         opponentname: gameResult.data.players[0]._refProperties.opponentname,
                         chessjsgame: chessjsgame
                     };
+                    console.log(`selectedGame = ${JSON.stringify(this.selectedGame)}`);
+                    console.log('update string from load');
                     this.updateMessageString(chessjsgame);
                     this.gameDetailsLoaded = true;
                     // if this is my turn
@@ -182,7 +185,9 @@ export default {
                             return;
                         }
                     }
-                    this.startPolling();
+                    if(this.selectedGame.status == "Ongoing") {
+                        this.startPolling();
+                    }
                 }
             });
         },
@@ -203,6 +208,11 @@ export default {
         reload() {
             this.getGameDetails(this.selectedGameId);
         },
+        gameOver(winner) {
+            this.selectedGame.status = "Over";
+            this.selectedGame.winner = winner;
+            this.saveGame();
+        },
         updateMessageString (g) {
             let turn = '';
             if (g.turn() === this.selectedGame.color) {
@@ -212,10 +222,12 @@ export default {
             }
             if (g.in_checkmate()) {
                 // checkmate?
+                this.gameOver(g.turn()=="w"?"b":"w");
                 console.log(`checkmate`);
                 this.myStatus = `<span style="color: orange;">Game over, ${g.turn()=="w"?"White":"Black"} is in checkmate.</span>`;
             } else if (g.in_draw()) {
                 // draw?
+                this.gameOver("d");
                 console.log(`draw`);
                 this.myStatus = '<span style="color: orange;">Game over, drawn position</span>';
             } else {
@@ -238,25 +250,35 @@ export default {
                 this.displayNotification('error', `Error marking seen - ${error.response}`);
             });
         },
-        saveGame() {
-            // update the selectedGame with the new FEN
-            const loaded = this.selectedGame.chessjsgame.load(this.newFEN);
+        finishGame() {
 
+        },
+        saveGame() {
             // commit the newFEN to repo
-            const saveData = [
-                {"operation":"replace", "field":"/currentFEN", "value":this.newFEN},
-                {"operation":"replace", "field":"/seen", "value":false},
-                {"operation":"add", "field":"/pastFEN/-", "value": {"FEN":this.oldFEN} }
-            ];
+            const saveData = [];
+            if(this.selectedGame.status == "Over") {
+                saveData.push({"operation":"replace", "field":"/status", "value": this.selectedGame.status});
+                saveData.push({"operation":"add", "field":"/endts", "value": new Date().toLocaleString() });
+                saveData.push({"operation":"add", "field":"/winner", "value": this.selectedGame.winner });
+            } else {
+                saveData.push({"operation":"replace", "field":"/currentFEN", "value":this.newFEN});
+                saveData.push({"operation":"replace", "field":"/seen", "value":false});
+                saveData.push({"operation":"add", "field":"/pastFEN/-", "value": {"FEN":this.oldFEN} });
+            }
             this.idmInstance.patch(`managed/game/${this.selectedGame.id}`, saveData).then(() => {
                 this.displayNotification('success', 'Move posted successfully');
-                this.updateMessageString(this.selectedGame.chessjsgame);
+                if(this.selectedGame.status == "Ongoing") {
+                    console.log('update string from save');
+                    this.updateMessageString(this.selectedGame.chessjsgame);
+                }
             },
             (error) => {
                 this.displayNotification('error', `Error posting move - ${error.response}`);
             });
             this.oldFEN = this.newFEN;
-            this.startPolling();
+            if(this.selectedGame.status == "Ongoing") {
+                this.startPolling();
+            }
         },
         undo() {
             const loaded = this.selectedGame.chessjsgame.load(this.oldFEN);

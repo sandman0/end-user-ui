@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC" xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:activiti="http://activiti.org/bpmn" targetNamespace="http://www.activiti.org/processdef">
+  <process id="game_invitation" name="Game invitation" isExecutable="true">
+    <startEvent id="startgame" name="Start" activiti:initiator="player1id"  activiti:formKey="startForm.js">
+      <extensionElements>
+        <activiti:formProperty id="selected" name="Selected" type="string" required="true" />
+      </extensionElements>
+    </startEvent>
+    <sequenceFlow id="Flow_1ctv7mw" sourceRef="startgame" targetRef="startgateway" />
+    <exclusiveGateway id="startgateway">
+      <incoming>Flow_1ctv7mw</incoming>
+      <outgoing>Flow_1kljdyl</outgoing>
+    </exclusiveGateway>
+    <sequenceFlow id="Flow_1kljdyl" sourceRef="startgateway" targetRef="setuserid" />
+    <scriptTask id="setuserid" name="Set Userid" scriptFormat="groovy" activiti:autoStoreVariables="false">
+      <script>
+        <!-- out:println "selected: " + selected -->
+        execution.setVariable("player2id", selected)
+      </script>
+    </scriptTask>
+    <sequenceFlow id="Flow_56f6fj" sourceRef="setuserid" targetRef="sendinvite" />
+    <scriptTask id="sendinvite" name="Send invite" scriptFormat="groovy" activiti:autoStoreVariables="false">
+      <script>
+        def user1Qry = openidm.query("managed/user", ["_queryFilter": '/userName eq "'+player1id+'"'])
+        def res1id = (user1Qry.result.size() == 1) ? ("managed/user/" + user1Qry.result[0]._id) : null
+        execution.setVariable('player1resourceid', res1id)
+        <!-- out:println "user1Qry " + user1Qry -->
+        execution.setVariable('player1name', user1Qry.result[0].givenName+' '+user1Qry.result[0].sn)
+
+        def user2Qry = openidm.query("managed/user", ["_queryFilter": '/userName eq "'+player2id+'"'])
+        def res2id = (user2Qry.result.size() == 1) ? ("managed/user/" + user2Qry.result[0]._id) : null
+        execution.setVariable('player2resourceid', res2id)
+        <!-- out:println "user2Qry " + user2Qry -->
+        execution.setVariable('player2name', user2Qry.result[0].givenName+' '+user2Qry.result[0].sn)
+
+        payload = [
+          notificationType: "info",
+          message: player1name + " (" + player1id + ") has invited you to a game of chess"
+        ]
+        params1 = [
+          _queryFilter: "userName eq '"+ player2id + "'",
+          targetResourceCollection: "managed/user"
+        ]
+        openidm.action("notification", "notifyByQueryFilter", payload, params1)
+      </script>
+    </scriptTask>
+    <sequenceFlow id="Flow_14pwbl9" sourceRef="sendinvite" targetRef="acceptreject" />
+    <userTask id="acceptreject" name="Accept/Reject" activiti:assignee="${player2id}" activiti:formKey="acceptForm.js">
+      <extensionElements>
+        <activiti:formProperty id="accepted" name="Accepted" type="enum" required="true">
+          <activiti:value id="yes" name="Yes" />
+          <activiti:value id="no" name="No" />
+        </activiti:formProperty>
+        <activiti:taskListener event="complete" class="org.activiti.engine.impl.bpmn.listener.ScriptTaskListener">
+          <activiti:field name="script">
+            <activiti:string>task.getExecution().setVariable("accepted", accepted)</activiti:string>
+          </activiti:field>
+          <activiti:field name="language" stringValue="groovy" />
+        </activiti:taskListener>
+      </extensionElements>
+      <incoming>Flow_14pwbl9</incoming>
+      <outgoing>Flow_1krch4t</outgoing>
+    </userTask>
+    <sequenceFlow id="Flow_1krch4t" sourceRef="acceptreject" targetRef="invitedecisiongateway" />
+    <exclusiveGateway id="invitedecisiongateway">
+      <incoming>Flow_1krch4t</incoming>
+      <outgoing>Flow_0akssms</outgoing>
+      <outgoing>Flow_1yb1ddy</outgoing>
+    </exclusiveGateway>
+    <sequenceFlow id="Flow_0akssms" name="reject" sourceRef="invitedecisiongateway" targetRef="endgame">
+      <conditionExpression xsi:type="tFormalExpression">${accepted=='no'}</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="Flow_1yb1ddy" name="accept" sourceRef="invitedecisiongateway" targetRef="creategame" />
+    <scriptTask id="creategame" name="Create game" scriptFormat="groovy" activiti:autoStoreVariables="false">
+      <incoming>Flow_1yb1ddy</incoming>
+      <outgoing>Flow_1rtn48w</outgoing>
+      <script>
+        Date date = new Date()
+        String datePart = date.format("dd/MM/yyyy")
+        String timePart = date.format("HH:mm:ss")
+        def startts = datePart + " " + timePart
+
+        gameData = [
+          "name": player1name + "(" + player1id + ") vs. " + player2name + "(" + player2id + ")",
+          "status": "Ongoing",
+          "startts": startts,
+          "endts": "",
+          "currentFEN": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+          "pastFEN": [],
+          "players": [
+            [
+              "_ref": player1resourceid,
+              "_refProperties": [
+                "color": "w",
+                "opponentid": player2id,
+                "opponentname": player2name
+              ]
+            ],
+            [
+              "_ref": player2resourceid,
+              "_refProperties": [
+                "color": "b",
+                "opponentid": player1id,
+                "opponentname": player1name
+              ]
+            ]
+          ]
+        ]
+        def gameReq = openidm.create("managed/game", null, gameData)
+      </script>
+    </scriptTask>
+    <sequenceFlow id="Flow_1rtn48w" sourceRef="creategame" targetRef="notifyplayers" />
+    <scriptTask id="notifyplayers" name="Notify players" scriptFormat="groovy" activiti:autoStoreVariables="false">
+      <incoming>Flow_1rtn48w</incoming>
+      <outgoing>Flow_03i80vd</outgoing>
+      <script>
+        payload = [
+          notificationType: "info",
+          message: "Game started between " + player1name + " (" + player1id + ") and " + player2name + " (" + player2id + ")"
+        ]
+        params1 = [
+          _queryFilter: "userName eq '"+ player1id + "'",
+          targetResourceCollection: "managed/user"
+        ]
+        params2 = [
+          _queryFilter: "userName eq '"+ player2id + "'",
+          targetResourceCollection: "managed/user"
+        ]
+
+        openidm.action("notification", "notifyByQueryFilter", payload, params1)
+        openidm.action("notification", "notifyByQueryFilter", payload, params2)
+      </script>
+    </scriptTask>
+    <sequenceFlow id="Flow_03i80vd" sourceRef="notifyplayers" targetRef="endgame" />
+    <endEvent id="endgame" name="end">
+      <incoming>Flow_0akssms</incoming>
+      <incoming>Flow_03i80vd</incoming>
+    </endEvent>
+  </process>
+</definitions>
