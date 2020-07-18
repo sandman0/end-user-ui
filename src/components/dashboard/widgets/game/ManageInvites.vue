@@ -7,9 +7,9 @@
         </b-row>
         <b-row>
             <div style="margin: 0 auto">
-                <b-table 
+                <b-table
                     striped
-                    hover 
+                    hover
                     :items="myGames"
                     :fields="fields"
                 >
@@ -33,10 +33,10 @@ export default {
         return {
             idmInstance: this.getRequestService(),
             fields: [
-                "from",
-                "sent_at",
+                'from',
+                'sent_at',
                 { key: 'actions', label: 'Actions' },
-                "name"
+                'name'
             ],
             myGames: []
         };
@@ -45,7 +45,7 @@ export default {
         this.getInvites();
     },
     methods: {
-        getInvites() {
+        getInvites () {
             this.myGames.splice(0, this.myGames.length);
             this.idmInstance.get(`${this.userDetails.managedResource}/${this.userDetails.userId}?_fields=games/*`).then((gameResult) => {
                 // console.log(`gameResult = ${JSON.stringify(gameResult)}`);
@@ -53,8 +53,8 @@ export default {
                     for (const game of gameResult.data.games) {
                         // we only need games which are in "InviteSent" state and which have
                         // the current user as the "b" player
-                        if(game.status === "InviteSent" && game._refProperties.color === "b") {
-                            console.log("adding game");
+                        if (game.status === 'InviteSent' && game._refProperties.color === 'b') {
+                            console.log('adding game');
                             this.myGames.push({
                                 id: game._refResourceId,
                                 from: game._refProperties.opponentname,
@@ -67,12 +67,12 @@ export default {
                 }
             });
         },
-        accept(item, index, button) {
+        accept (item, index, button) {
             console.log(`accepted: ${JSON.stringify(item, null, 2)}`);
             const acceptData = [
-                {"operation":"replace", "field":"/status", "value": "Ongoing"},
-                {"operation":"add", "field":"/startts", "value": new Date().toLocaleString() },
-                {"operation":"add", "field":"/currentFEN", "value": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1" }
+                { 'operation': 'replace', 'field': '/status', 'value': 'Ongoing' },
+                { 'operation': 'add', 'field': '/startts', 'value': new Date().toLocaleString() },
+                { 'operation': 'add', 'field': '/currentFEN', 'value': 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1' }
             ];
             this.idmInstance.patch(`managed/game/${item.id}`, acceptData).then(() => {
                 this.displayNotification('success', 'Invite accepted. Game started.');

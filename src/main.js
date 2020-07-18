@@ -13,8 +13,7 @@ import VeeValidate from 'vee-validate';
 import Vue from 'vue';
 import 'core-js/stable';
 import Chessboard from '@/components/dashboard/widgets/chessboard/chessboard.vue';
-import Chess from 'chess.js'
-
+import Chess from 'chess.js';
 
 // Turn off production warning messages
 Vue.config.productionTip = false;

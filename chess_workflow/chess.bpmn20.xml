@@ -76,7 +76,6 @@
           "startts": startts,
           "endts": "",
           "currentFEN": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-          "pastFEN": [],
           "players": [
             [
               "_ref": player1resourceid,

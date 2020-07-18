@@ -157,6 +157,10 @@
             this.submit();
         },
         gameOver(winner) {
+            if(this.selectedGame.status === 'Over') {
+                // game was already saved with Over status last time, do not save again
+                return;
+            }
             this.selectedGame.status = "Over";
             this.selectedGame.winner = winner;
             this.saveGame();
@@ -170,7 +174,7 @@
             } else {
                 saveData.push({"operation":"replace", "field":"/currentFEN", "value":this.newFEN});
                 saveData.push({"operation":"replace", "field":"/seen", "value":false});
-                saveData.push({"operation":"add", "field":"/pastFEN/-", "value": {"FEN":this.oldFEN} });
+                saveData.push({"operation":"add", "field":"/pastFEN/-", "value": this.oldFEN });
             }
             this.idmInstance.patch(`managed/game/${this.selectedGame.id}`, saveData).then(() => {
                 this.displayNotification('success', 'Move posted successfully');

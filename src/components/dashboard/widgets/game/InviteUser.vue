@@ -39,11 +39,11 @@ export default {
         this.getUsers();
     },
     methods: {
-        getUsers() {
-            this.idmInstance.get("endpoint/searchUsers?myid="+this.userDetails.userId).then((userResult) => {
+        getUsers () {
+            this.idmInstance.get('endpoint/searchUsers?myid=' + this.userDetails.userId).then((userResult) => {
                 // console.log(`userResult = ${JSON.stringify(userResult)}`);
                 if (userResult.data.result.length > 0) {
-                    for(const item of userResult.data.result) {
+                    for (const item of userResult.data.result) {
                         this.userList.push(
                             {
                                 value: {
@@ -58,38 +58,38 @@ export default {
                 }
             });
         },
-        invite() {
+        invite () {
             let invitedata = {
                 name: `${this.userDetails.givenName} ${this.userDetails.sn} vs. ${this.selectedUser.name}`,
-                status: "InviteSent",
+                status: 'InviteSent',
                 invitets: new Date().toLocaleString(),
-                endts: "",
+                endts: '',
                 players: [
                     {
-                        _ref: "managed/user/"+this.userDetails.userId,
+                        _ref: 'managed/user/' + this.userDetails.userId,
                         _refProperties: {
-                            color: "w",
+                            color: 'w',
                             opponentid: this.selectedUser.username,
                             opponentname: this.selectedUser.name
                         }
                     },
                     {
-                        _ref: "managed/user/"+this.selectedUser.id,
+                        _ref: 'managed/user/' + this.selectedUser.id,
                         _refProperties: {
-                            color: "b",
+                            color: 'b',
                             opponentid: this.userDetails.userName,
                             opponentname: `${this.userDetails.givenName} ${this.userDetails.sn}`
                         }
                     }
                 ],
-                currentFEN: "",
+                currentFEN: '',
                 pastFEN: []
             };
             this.idmInstance.post(`managed/game?_action=create`, invitedata).then(() => {
-                    this.displayNotification('success', 'Invitation sent');
+                this.displayNotification('success', 'Invitation sent');
             },
             (error) => {
-                this.displayNotification('error', 'Error while sending invitation');
+                this.displayNotification('error', `Error while sending invitation ${error}`);
             });
         }
     }

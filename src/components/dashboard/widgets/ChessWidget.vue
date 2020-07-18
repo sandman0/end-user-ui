@@ -4,7 +4,7 @@
         <div>
             Select a game:
             <!-- <b-form-select v-model="selectedGameId" :options="myGames" class="mb-3"> -->
-            <b-form-select v-model="selectedGameId" @change="getGameDetails" :options="myGames" class="mb-3">
+            <b-form-select v-model="selectedGameId" @change="getGameDetails" :options="myGames">
                 <!-- <template v-slot:first>
                     <b-form-select-option :value="null" disabled>-- select a game --</b-form-select-option>
                 </template> -->
@@ -13,7 +13,7 @@
         <div v-if="gameDetailsLoaded">
             <b-row>
                 <div style="margin: 0 auto">
-                    <small>Started {{selectedGame.startts}}</small>
+                    <small>Started {{selectedGame.startts}}</small> | <small>Ended {{selectedGame.endts}}</small>
                 </div>
             </b-row>
             <b-row>
@@ -32,12 +32,12 @@
                 </div>
             </b-row>
             <b-row>
-                <chessboard 
-                    class="chessboard" 
-                    :iconDir="iconDir" 
-                    :fen="selectedGame.currentFEN" 
-                    :side="selectedGame.color" 
-                    v-on:change="boardChange($event)">
+                <chessboard
+                    class="chessboard"
+                    :iconDir="iconDir"
+                    :fen="currentFEN"
+                    :side="selectedGame.color"
+                >
                 </chessboard>
             </b-row>
             <b-row>
@@ -53,11 +53,17 @@
             </b-row>
             <b-row>
                 <div style="margin: 0 auto">
-                    <b-button :disabled="newFEN == oldFEN" @click="saveGame()" variant="info">Commit</b-button>
-                    <b-button :disabled="newFEN == oldFEN" @click="undo()" variant="info">Undo</b-button>
-                    <b-button @click="reload" variant="info">Refresh</b-button>
-                    &nbsp;
-                    <b-button :disabled="selectedGame.status=='Ongoing'" @click="finishGame()" variant="warning">Finish game</b-button>
+                    <vue-slider
+                        width="400px"
+                        v-model="slidervalue"
+                        :data="slider"
+                        :adsorb="true"
+                        :marks="true"
+                    ></vue-slider>
+                </div>
+            </b-row>
+            <b-row>
+                <div style="margin: 0 auto">&nbsp;
                 </div>
             </b-row>
         </div>
@@ -85,62 +91,52 @@
     </div>
 </template>
 <script>
-import _ from 'lodash';
 import Chessboard from '@/components/dashboard/widgets/chessboard/chessboard.vue';
 import Chess from 'chess.js';
-// import InviteUser from '@/components/dashboard/widgets/game/InviteUser';
-// import ManageInvites from '@/components/dashboard/widgets/game/ManageInvites';
+// import VueSlideBar from 'vue-slide-bar'
+import VueSlider from 'vue-slider-component'
+import 'vue-slider-component/theme/default.css'
 
 export default {
     name: 'Chess-Widget',
     components: {
-        Chessboard
-        // InviteUser,
-        // ManageInvites
+        Chessboard,
+        VueSlider
     },
     props: ['userDetails', 'widgetDetails'],
     data () {
         return {
             idmInstance: this.getRequestService(),
             myGames: [],
-            newFEN: "",
-            oldFEN: "",
+            currentFEN: '',
             gameDetailsLoaded: false,
             selectedGameId: null,
             selectedGame: null,
             myStatus: '',
             gameOptIn: false,
-            iconDir: '@/components/dashboard/widgets/chessboard/chess-pieces/'
+            iconDir: '@/components/dashboard/widgets/chessboard/chess-pieces/',
+            slider: [],
+            slidervalue: 0
         };
+    },
+    watch: {
+        slidervalue: function (newval, oldval) {
+            this.currentFEN = this.selectedGame.pastFEN[newval-1];
+        }
     },
     mounted () {
         this.gameOptIn = this.userDetails.profile.gameOptIn;
         this.getMyGamesList();
     },
     methods: {
-        startPolling () {
-            let pollingDelay = 5000;
-
-            /* istanbul ignore next */
-            this.timeoutId = _.delay(() => {
-                this.getGameDetails(this.selectedGameId);
-            }, pollingDelay);
-        },
-        resetPolling () {
-            /* istanbul ignore next */
-            if (!_.isNull(this.timeoutId)) {
-                clearTimeout(this.timeoutId);
-                this.timeoutId = null;
-            }
-        },
-        getMyGamesList() {
+        getMyGamesList () {
             this.myGames.splice(0, this.myGames.length);
             this.idmInstance.get(`${this.userDetails.managedResource}/${this.userDetails.userId}?_fields=games/*`).then((gameResult) => {
                 // console.log(`gameResult = ${JSON.stringify(gameResult)}`);
                 if (gameResult.data.games.length > 0) {
                     for (const game of gameResult.data.games) {
                         // only get games with status != InviteSent
-                        if(game.status == "Over") {
+                        if (game.status === 'Over') {
                             this.myGames.push({
                                 text: `Game with ${game._refProperties.opponentname}`,
                                 value: game._refResourceId
@@ -151,7 +147,7 @@ export default {
                 }
             });
         },
-        getGameDetails(id) {
+        getGameDetails (id) {
             // this.gameDetailsLoaded = false;
             this.idmInstance.get(`managed/game/${id}?_fields=*,players`).then((gameResult) => {
                 // console.log(`gameResult = ${JSON.stringify(gameResult)}`);
@@ -162,136 +158,55 @@ export default {
                         name: gameResult.data.name,
                         status: gameResult.data.status,
                         startts: gameResult.data.startts,
-                        currentFEN: gameResult.data.currentFEN,
-                        oldFEN: gameResult.data.currentFEN,
+                        endts: gameResult.data.endts,
+                        winner: gameResult.data.winner,
+                        pastFEN: gameResult.data.pastFEN,
                         color: gameResult.data.players[0]._refProperties.color,
                         opponentid: gameResult.data.players[0]._refProperties.opponentid,
                         opponentname: gameResult.data.players[0]._refProperties.opponentname,
                         chessjsgame: chessjsgame
                     };
-                    console.log(`selectedGame = ${JSON.stringify(this.selectedGame)}`);
-                    console.log('update string from load');
+                    // console.log(`selectedGame = ${JSON.stringify(this.selectedGame)}`);
+                    // console.log('update string from load');
                     this.updateMessageString(chessjsgame);
+                    this.createSlider();
                     this.gameDetailsLoaded = true;
-                    // if this is my turn
-                    if(this.selectedGame.chessjsgame.turn() === this.selectedGame.color) {
-                        // mark the update as "seen"
-                        this.seenGame();
-                    }
-                    // if this is my turn
-                    if(this.selectedGame) {
-                        if(this.selectedGame.chessjsgame.turn() === this.selectedGame.color) {
-                            // no need to poll
-                            return;
-                        }
-                    }
-                    if(this.selectedGame.status == "Ongoing") {
-                        this.startPolling();
-                    }
                 }
             });
         },
-        optin() {
+        createSlider() {
+            this.slider.splice(0, this.slider.length);
+            let fenCounter = 1;
+            for(let i=0; i<this.selectedGame.pastFEN.length;i++) {
+                this.slider.push(i+1);
+            }
+        },
+        optin () {
             const payload = [
-                {"operation":"replace", "field":"/gameOptIn", "value": true},
+                { 'operation': 'replace', 'field': '/gameOptIn', 'value': true }
             ];
             this.idmInstance.patch(`${this.userDetails.managedResource}/${this.userDetails.userId}`, payload)
-            .then((response) => {
-                this.displayNotification('success', 'Opt in sucess');
-                this.gameOptIn = true;
-            })
-            .catch((error) => {
+                .then((response) => {
+                    this.displayNotification('success', 'Opt in sucess');
+                    this.gameOptIn = true;
+                })
+                .catch((error) => {
                 /* istanbul ignore next */
-                this.displayNotification('error', 'Error when opting in');
-            });
+                    this.displayNotification('error', `Error when opting in ${error}`);
+                });
         },
-        reload() {
+        reload () {
             this.getGameDetails(this.selectedGameId);
-        },
-        gameOver(winner) {
-            this.selectedGame.status = "Over";
-            this.selectedGame.winner = winner;
-            this.saveGame();
         },
         updateMessageString (g) {
             let turn = '';
-            if (g.turn() === this.selectedGame.color) {
-                turn = "my";
+            if(this.selectedGame.winner === this.selectedGame.color) {
+                this.myStatus = `<span style="color: green;">I won</span>`;
+            } else if(this.selectedGame.winner === 'd') {
+                this.myStatus = `<span style="color: blue;">DRAW</span>`;
             } else {
-                turn = "opponent's";
+                this.myStatus = `<span style="color: red;">Opponent won</span>`;
             }
-            if (g.in_checkmate()) {
-                // checkmate?
-                this.gameOver(g.turn()=="w"?"b":"w");
-                console.log(`checkmate`);
-                this.myStatus = `<span style="color: orange;">Game over, ${g.turn()=="w"?"White":"Black"} is in checkmate.</span>`;
-            } else if (g.in_draw()) {
-                // draw?
-                this.gameOver("d");
-                console.log(`draw`);
-                this.myStatus = '<span style="color: orange;">Game over, drawn position</span>';
-            } else {
-                // check?
-                this.myStatus = `<span style="color: blue;">${turn} turn</span>`;
-                if (g.in_check()) {
-                    this.myStatus += `, <span style="color: red;">in check</span>`;
-                }
-            }
-        },
-        seenGame() {
-            const saveData = [
-                {"operation":"replace", "field":"/seen", "value":true}
-            ];
-            this.idmInstance.patch(`managed/game/${this.selectedGame.id}`, saveData).then(() => {
-                //this.displayNotification('success', 'Move posted successfully');
-                //this.updateMessageString(this.selectedGame.chessjsgame);
-            },
-            (error) => {
-                this.displayNotification('error', `Error marking seen - ${error.response}`);
-            });
-        },
-        finishGame() {
-
-        },
-        saveGame() {
-            // commit the newFEN to repo
-            const saveData = [];
-            if(this.selectedGame.status == "Over") {
-                saveData.push({"operation":"replace", "field":"/status", "value": this.selectedGame.status});
-                saveData.push({"operation":"add", "field":"/endts", "value": new Date().toLocaleString() });
-                saveData.push({"operation":"add", "field":"/winner", "value": this.selectedGame.winner });
-            } else {
-                saveData.push({"operation":"replace", "field":"/currentFEN", "value":this.newFEN});
-                saveData.push({"operation":"replace", "field":"/seen", "value":false});
-                saveData.push({"operation":"add", "field":"/pastFEN/-", "value": {"FEN":this.oldFEN} });
-            }
-            this.idmInstance.patch(`managed/game/${this.selectedGame.id}`, saveData).then(() => {
-                this.displayNotification('success', 'Move posted successfully');
-                if(this.selectedGame.status == "Ongoing") {
-                    console.log('update string from save');
-                    this.updateMessageString(this.selectedGame.chessjsgame);
-                }
-            },
-            (error) => {
-                this.displayNotification('error', `Error posting move - ${error.response}`);
-            });
-            this.oldFEN = this.newFEN;
-            if(this.selectedGame.status == "Ongoing") {
-                this.startPolling();
-            }
-        },
-        undo() {
-            const loaded = this.selectedGame.chessjsgame.load(this.oldFEN);
-            this.selectedGame.currentFEN = this.oldFEN;
-            this.newFEN = this.oldFEN;
-        },
-        boardChange (fen) {
-            this.oldFEN = this.selectedGame.chessjsgame.fen();
-            this.selectedGame.currentFEN = fen;
-            // console.log(`this.oldFEN ${this.oldFEN}`);
-            this.newFEN = fen;
-            // console.log(`this.newFEN ${this.newFEN}`);
-            // console.log(`currentFEN ${this.selectedGame.currentFEN}`);
         }
     }
 };
