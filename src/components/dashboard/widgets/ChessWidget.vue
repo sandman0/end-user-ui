@@ -52,19 +52,55 @@
                 </div>
             </b-row>
             <b-row>
-                <div style="margin: 0 auto">
-                    <vue-slider
-                        width="400px"
-                        v-model="slidervalue"
-                        :data="slider"
-                        :adsorb="true"
-                        :marks="true"
-                    ></vue-slider>
+                <div style="margin: 0 auto">&nbsp;
                 </div>
             </b-row>
             <b-row>
-                <div style="margin: 0 auto">&nbsp;
+                <div style="margin: 0 auto;">
+                    <div style="margin: 0 auto">
+                        Game replay controls
+                    </div>
+                    <div style="margin: 0 auto">
+                        <vue-slider
+                            width="400px"
+                            v-model="slidervalue"
+                            :data="slider"
+                            :adsorb="true"
+                            :marks="true"
+                            :contained="true"
+                            @drag-start="stopreplay"
+                            @change="stopreplay"
+                        ></vue-slider>
+                    </div>
+                    <div style="margin: 0 auto">&nbsp;
+                    </div>
+                    <div style="margin: 0 auto">
+                        <b-button 
+                            @click="prev" 
+                            :disabled="slidervalue == 0" 
+                            size="sm" 
+                            variant="light">
+                            &#x23ea;
+                        </b-button>
+                        <b-button 
+                            @click="playpause" 
+                            :disabled="slidervalue == (selectedGame.pastFEN.length-1)" 
+                            size="sm" 
+                            variant="light">
+                                <span v-html="playButton"></span>
+                            </b-button>
+                        <b-button 
+                            @click="next" 
+                            size="sm" 
+                            variant="light">
+                            &#x23e9;
+                        </b-button>
+                    </div>
                 </div>
+            </b-row>
+            <b-row>
+            </b-row>
+            <b-row>
             </b-row>
         </div>
         <div v-else>
@@ -93,6 +129,7 @@
 <script>
 import Chessboard from '@/components/dashboard/widgets/chessboard/chessboard.vue';
 import Chess from 'chess.js';
+import _ from 'lodash';
 // import VueSlideBar from 'vue-slide-bar'
 import VueSlider from 'vue-slider-component'
 import 'vue-slider-component/theme/default.css'
@@ -116,8 +153,14 @@ export default {
             gameOptIn: false,
             iconDir: '@/components/dashboard/widgets/chessboard/chess-pieces/',
             slider: [],
-            slidervalue: 0
+            slidervalue: 0,
+            timeoutId: null
         };
+    },
+    computed: {
+        playButton: function () {
+            return this.timeoutId==null?"&#x23f5;":"&#x23f8;";
+        }
     },
     watch: {
         slidervalue: function (newval, oldval) {
@@ -195,8 +238,39 @@ export default {
                     this.displayNotification('error', `Error when opting in ${error}`);
                 });
         },
-        reload () {
-            this.getGameDetails(this.selectedGameId);
+        prev () {
+            this.stopreplay();
+            if(this.slidervalue > 0) {
+                this.slidervalue--;
+            }
+        },
+        next () {
+            this.stopreplay();
+            if(this.slidervalue < (this.selectedGame.pastFEN.length-1)) {
+                this.slidervalue++;
+            }
+        },
+        playpause () {
+            if (!_.isNull(this.timeoutId)) {
+                this.stopreplay();
+            } else {
+                this.startreplay();
+            }
+        },
+        startreplay() {
+            let playSpeed = 2000;
+            this.next();
+            /* istanbul ignore next */
+            this.timeoutId = setTimeout(() => {
+                this.startreplay();
+            }, playSpeed);
+        },
+        stopreplay() {
+            if (!_.isNull(this.timeoutId)) {
+                let id = this.timeoutId;
+                this.timeoutId = null;
+                clearTimeout(id);
+            }
         },
         updateMessageString (g) {
             let turn = '';
