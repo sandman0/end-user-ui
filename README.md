@@ -11,22 +11,36 @@
   </p>
 </p>
 
+# Attention
+This branch (chess2) has the UI components for the ForgeRock IDM multiplayer chess
+
+
 ## Table of contents
 
-- [Quick start](#quick-start)
-- [Development server](#development-server)
-- [Development server tools](#development-server-tools)
-- [Testing](#testing)
-- [Testing tools](#testing-tools)
-- [Application structure](#application-structure)
-- [Application tools](#application-tools)
-- [Translations and Text](#translations-and-text)
-- [Deployment](#deployment)
-- [Theming](#theming)
-- [Build command summary](#build-command-summary)
-- [Build source code and Docker images using Maven](#build-using-maven)
-- [Browser support](#browser-support)
-- [Common questions](#common-questions)
+- [Attention](#attention)
+  - [Table of contents](#table-of-contents)
+  - [Quick start](#quick-start)
+    - [Optional Help](#optional-help)
+  - [Development server](#development-server)
+  - [Development server tools](#development-server-tools)
+  - [Testing](#testing)
+  - [Testing tools](#testing-tools)
+  - [Application structure](#application-structure)
+  - [Application tools](#application-tools)
+  - [Translations and Text](#translations-and-text)
+  - [Deployment](#deployment)
+  - [Theming](#theming)
+  - [Build command summary](#build-command-summary)
+  - [Build source code and Docker images using Maven](#build-source-code-and-docker-images-using-maven)
+  - [Browser support](#browser-support)
+  - [Common Questions](#common-questions)
+    - [Who this project is for](#who-this-project-is-for)
+    - [How to Add a Self-Service Stage to the UI](#how-to-add-a-self-service-stage-to-the-ui)
+    - [How to Replace IDM End User](#how-to-replace-idm-end-user)
+    - [How to Add Additional Registration Flows](#how-to-add-additional-registration-flows)
+    - [How to Configure Notification Polling](#how-to-configure-notification-polling)
+    - [How to Configure REST Call Timeouts](#how-to-configure-rest-call-timeouts)
+    - [What has Changed with Workflow](#what-has-changed-with-workflow)
 
 <a name="quick-start"></a>
 ## Quick start
@@ -261,13 +275,30 @@ mvn docker:build docker:push \
 <a name="common-questions"></a>
 ## Common Questions
 
-- [Who this project is for](#who-this-project-is-for)
-- [How to Add a Self-Service Stage to the UI](#how-to-add-a-self-service-stage-to-the-ui)
-- [How to Replace IDM End User files](#how-to-replace-a-idm-enduser)
-- [How to Add Additional Registration Flows](#how-to-add-additional-registration-flows)
-- [How to Configure Notification Polling](#how-to-configure-notification-polling)
-- [How to Configure REST Call Timeouts](#how-to-configure-rest-call-timeouts)
-- [What has Changed with Workflow](#what-has-changed-with-workflow)
+- [Attention](#attention)
+  - [Table of contents](#table-of-contents)
+  - [Quick start](#quick-start)
+    - [Optional Help](#optional-help)
+  - [Development server](#development-server)
+  - [Development server tools](#development-server-tools)
+  - [Testing](#testing)
+  - [Testing tools](#testing-tools)
+  - [Application structure](#application-structure)
+  - [Application tools](#application-tools)
+  - [Translations and Text](#translations-and-text)
+  - [Deployment](#deployment)
+  - [Theming](#theming)
+  - [Build command summary](#build-command-summary)
+  - [Build source code and Docker images using Maven](#build-source-code-and-docker-images-using-maven)
+  - [Browser support](#browser-support)
+  - [Common Questions](#common-questions)
+    - [Who this project is for](#who-this-project-is-for)
+    - [How to Add a Self-Service Stage to the UI](#how-to-add-a-self-service-stage-to-the-ui)
+    - [How to Replace IDM End User](#how-to-replace-idm-end-user)
+    - [How to Add Additional Registration Flows](#how-to-add-additional-registration-flows)
+    - [How to Configure Notification Polling](#how-to-configure-notification-polling)
+    - [How to Configure REST Call Timeouts](#how-to-configure-rest-call-timeouts)
+    - [What has Changed with Workflow](#what-has-changed-with-workflow)
 
 <a name="who-this-project-is-for"></a>
 ### Who this project is for
