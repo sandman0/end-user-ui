@@ -112,19 +112,6 @@
         </div>
         <hr>
     </div>
-    <div v-else>
-        <b-row>
-            <div style="margin: 0 auto">
-                <h2>Opt in for community games?</h2>
-                <small>Clicking "Yes" below will allow you to search for other players who have opted in and challenge them to a game of chess</small>
-            </div>
-        </b-row>
-        <b-row>
-            <div style="margin: 0 auto">
-                <b-button @click="optin" variant="success">YES</b-button>
-            </div>
-        </b-row>
-    </div>
 </template>
 <script>
 import Chessboard from '@/components/dashboard/widgets/chessboard/chessboard.vue';
@@ -168,7 +155,7 @@ export default {
         }
     },
     mounted () {
-        this.gameOptIn = this.userDetails.profile.gameOptIn;
+        this.gameOptIn = this.userDetails.profile.preferences.games;
         this.getMyGamesList();
     },
     methods: {
@@ -223,20 +210,6 @@ export default {
             for(let i=0; i<this.selectedGame.pastFEN.length;i++) {
                 this.slider.push(i+1);
             }
-        },
-        optin () {
-            const payload = [
-                { 'operation': 'replace', 'field': '/gameOptIn', 'value': true }
-            ];
-            this.idmInstance.patch(`${this.userDetails.managedResource}/${this.userDetails.userId}`, payload)
-                .then((response) => {
-                    this.displayNotification('success', 'Opt in sucess');
-                    this.gameOptIn = true;
-                })
-                .catch((error) => {
-                /* istanbul ignore next */
-                    this.displayNotification('error', `Error when opting in ${error}`);
-                });
         },
         prev () {
             this.stopreplay();
